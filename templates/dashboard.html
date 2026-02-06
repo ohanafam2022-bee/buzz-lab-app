@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Buzz Lab</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Outfit:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0052cc;
+            --dark-blue: #0a192f;
+            --light-blue: #64ffda;
+            --text-color: #e6f1ff;
+            --card-bg: #112240;
+            --glass-border: rgba(255, 255, 255, 0.1);
+
+            /* Status Colors */
+            --status-todo: #8892b0;
+            --status-doing: #ffd700;
+            --status-done: #3fb950;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+            background-color: var(--dark-blue);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--light-blue);
+        }
+
+        .student-info {
+            font-size: 1.1rem;
+        }
+
+        .progress-section {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            margin: 0;
+            color: white;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--light-blue);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .task-item {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.3s;
+        }
+
+        .task-item:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .task-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .task-info {
+            flex-grow: 1;
+            padding-right: 1rem;
+        }
+
+        .task-title {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            cursor: pointer;
+        }
+
+        .task-meta {
+            font-size: 0.8rem;
+            color: #8892b0;
+            cursor: pointer;
+        }
+
+        .task-description {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #ccc;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .task-description.open {
+            display: block;
+        }
+
+        .status-select {
+            background-color: #1a2745;
+            color: white;
+            border: 1px solid var(--glass-border);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .status-select.val-done {
+            color: var(--status-done);
+            border-color: var(--status-done);
+        }
+
+        .status-select.val-doing {
+            color: var(--status-doing);
+            border-color: var(--status-doing);
+        }
+
+        .status-select.val-todo {
+            color: var(--status-todo);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 2rem;
+            color: var(--light-blue);
+            text-decoration: none;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+
+        .status-saved {
+            background-color: rgba(63, 185, 80, 0.2);
+            color: #3fb950;
+        }
+
+        .status-saving {
+            background-color: rgba(210, 168, 255, 0.2);
+            color: #d2a8ff;
+        }
+
+        .week-header {
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: var(--light-blue);
+            font-weight: bold;
+            border-bottom: 1px solid var(--light-blue);
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <header>
+            <h1>Buzz Lab Dashboard</h1>
+            <div class="student-info" id="studentName">Loading...</div>
+        </header>
+
+        <main class="progress-section">
+            <div class="progress-header">
+                <h2>あなたの進捗 <span id="progressText">0%</span></h2>
+                <div id="syncStatus"></div>
+            </div>
+
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+
+            <ul class="task-list" id="taskList">
+                <!-- Tasks will be injected here -->
+            </ul>
+        </main>
+
+        <a href="/" class="back-link">← トップページに戻る</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchProgress();
+        });
+
+        async function fetchProgress() {
+            try {
+                const response = await fetch('/api/progress');
+                const data = await response.json();
+                renderDashboard(data);
+            } catch (error) {
+                console.error('Error fetching progress:', error);
+            }
+        }
+
+        function renderDashboard(data) {
+            document.getElementById('studentName').textContent = data.name;
+            
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '';
+            
+            let completedCount = 0;
+            let currentWeek = null;
+            
+            data.tasks.forEach(task => {
+                // Determine completion based on status string
+                const isCompleted = task.status === '完了';
+                if (isCompleted) completedCount++;
+                
+                // Add Week Header if changed
+                if (task.week && task.week !== currentWeek) {
+                    currentWeek = task.week;
+                    const weekHeader = document.createElement('li');
+                    weekHeader.className = 'week-header';
+                    weekHeader.innerHTML = `<h3>${currentWeek}</h3>`;
+                    taskList.appendChild(weekHeader);
+                }
+
+                const li = document.createElement('li');
+                li.className = 'task-item';
+                
+                const taskMain = document.createElement('div');
+                taskMain.className = 'task-main';
+                
+                const taskInfo = document.createElement('div');
+                taskInfo.className = 'task-info';
+                
+                // Title
+                const title = document.createElement('div');
+                title.className = 'task-title';
+                title.textContent = task.title;
+                if (isCompleted) title.style.color = '#8892b0';
+                
+                // Subtitle / Click to expand hint
+                const meta = document.createElement('div');
+                meta.className = 'task-meta';
+                meta.textContent = task.description ? '詳細を見る ▼' : '詳細なし';
+                
+                taskInfo.appendChild(title);
+                taskInfo.appendChild(meta);
+                
+                // Toggle Description Click
+                taskInfo.onclick = () => {
+                   const desc = li.querySelector('.task-description');
+                   if (desc) desc.classList.toggle('open');
+                };
+
+                // Status Dropdown
+                const select = document.createElement('select');
+                select.className = `status-select val-${getClassForStatus(task.status)}`;
+                
+                const options = ['未着手', '進行中', '完了'];
+                options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.textContent = opt;
+                    if (task.status === opt) option.selected = true;
+                    select.appendChild(option);
+                });
+                
+                select.onchange = (e) => {
+                    const newStatus = e.target.value;
+                    // Update visuals
+                    select.className = `status-select val-${getClassForStatus(newStatus)}`;
+                    if (newStatus === '完了') title.style.color = '#8892b0';
+                    else title.style.color = '#e6f1ff';
+                    
+                    updateStatus(task.id, newStatus);
+                };
+
+                taskMain.appendChild(taskInfo);
+                taskMain.appendChild(select);
+                li.appendChild(taskMain);
+                
+                // Description Box
+                if (task.description) {
+                    const descBox = document.createElement('div');
+                    descBox.className = 'task-description';
+                    descBox.textContent = task.description;
+                    li.appendChild(descBox);
+                }
+
+                taskList.appendChild(li);
+            });
+            
+            updateProgressBar(completedCount, data.tasks.length);
+        }
+        
+        function getClassForStatus(status) {
+            if (status === '完了') return 'done';
+            if (status === '進行中') return 'doing';
+            return 'todo';
+        }
+
+        function updateProgressBar(completed, total) {
+            const percentage = Math.round((completed / total) * 100);
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${percentage}%`;
+        }
+
+        async function updateStatus(taskId, newStatus) {
+            // Optimistic UI update: recalculate progress bar
+            const allSelects = document.querySelectorAll('.status-select');
+            const total = allSelects.length;
+            const completed = Array.from(allSelects).filter(s => s.value === '完了').length;
+            updateProgressBar(completed, total);
+
+            // Sync with backend
+            showSyncStatus('Saving...', 'saving');
+            try {
+                const response = await fetch('/api/progress', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ task_id: taskId, status: newStatus })
+                });
+                
+                if (response.ok) {
+                    showSyncStatus('Saved to Cloud', 'saved');
+                } else {
+                    showSyncStatus('Error Saving', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating task:', error);
+                showSyncStatus('Connection Error', 'error');
+            }
+            
+            setTimeout(() => {
+                document.getElementById('syncStatus').innerHTML = '';
+            }, 3000);
+        }
+        
+        function showSyncStatus(text, type) {
+            const el = document.getElementById('syncStatus');
+            el.innerHTML = `<span class="status-badge status-${type}">${text}</span>`;
+        }
+    </script>
+</body>
+
+</html>
