@@ -30,10 +30,17 @@ def dashboard():
 @app.route('/api/progress', methods=['GET'])
 def get_progress():
     user_id = "student_id_001"
+    
+    # Get Tasks
     tasks = sheets_handler.get_tasks(user_id)
+    
+    # Get User Info (Goals, etc.)
+    user_info = sheets_handler.get_user_info(user_id)
+    
     return jsonify({
-        "name": "Buzz Student", 
-        "tasks": tasks
+        "name": user_info.get("mentor", "Buzz Student"), # Use mentor name as student name placeholder for now? Or just "Buzz Student"
+        "tasks": tasks,
+        "user_info": user_info
     })
 
 @app.route('/api/progress', methods=['POST'])

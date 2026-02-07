@@ -192,6 +192,41 @@
             color: #d2a8ff;
         }
 
+        /* Goal Section Styles */
+        .goal-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .goal-card {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .goal-card h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--status-todo);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .goal-card p {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: bold;
+            line-height: 1.4;
+            color: var(--text-color);
+            white-space: pre-wrap;
+            /* Handle multiline text */
+        }
+
         .week-header {
             margin-top: 30px;
             margin-bottom: 15px;
@@ -245,18 +280,45 @@
 
         function renderDashboard(data) {
             document.getElementById('studentName').textContent = data.name;
-            
+
+            // Render Goal Section
+            const info = data.user_info || {};
+            const goalHtml = `
+                <div class="goal-section">
+                    <div class="goal-card">
+                        <h3>🏆 今月の目標</h3>
+                        <p>${info.monthly_goal || '未設定'}</p>
+                    </div>
+                    <div class="goal-card">
+                        <h3>⚠️ 課題・ボトルネック</h3>
+                        <p>${info.bottleneck || 'なし'}</p>
+                    </div>
+                    <div class="goal-card">
+                        <h3>🔥 今週フォーカス</h3>
+                        <p>${info.weekly_focus || '未設定'}</p>
+                    </div>
+                </div>
+            `;
+
+            // Insert Goal Section before Progress Section
+            const progressSection = document.querySelector('.progress-section');
+            if (!document.querySelector('.goal-section')) {
+                const goalContainer = document.createElement('div');
+                goalContainer.innerHTML = goalHtml;
+                progressSection.parentNode.insertBefore(goalContainer, progressSection);
+            }
+
             const taskList = document.getElementById('taskList');
             taskList.innerHTML = '';
-            
+
             let completedCount = 0;
             let currentWeek = null;
-            
+
             data.tasks.forEach(task => {
                 // Determine completion based on status string
                 const isCompleted = task.status === '完了';
                 if (isCompleted) completedCount++;
-                
+
                 // Add Week Header if changed
                 if (task.week && task.week !== currentWeek) {
                     currentWeek = task.week;
@@ -268,37 +330,37 @@
 
                 const li = document.createElement('li');
                 li.className = 'task-item';
-                
+
                 const taskMain = document.createElement('div');
                 taskMain.className = 'task-main';
-                
+
                 const taskInfo = document.createElement('div');
                 taskInfo.className = 'task-info';
-                
+
                 // Title
                 const title = document.createElement('div');
                 title.className = 'task-title';
                 title.textContent = task.title;
                 if (isCompleted) title.style.color = '#8892b0';
-                
+
                 // Subtitle / Click to expand hint
                 const meta = document.createElement('div');
                 meta.className = 'task-meta';
                 meta.textContent = task.description ? '詳細を見る ▼' : '詳細なし';
-                
+
                 taskInfo.appendChild(title);
                 taskInfo.appendChild(meta);
-                
+
                 // Toggle Description Click
                 taskInfo.onclick = () => {
-                   const desc = li.querySelector('.task-description');
-                   if (desc) desc.classList.toggle('open');
+                    const desc = li.querySelector('.task-description');
+                    if (desc) desc.classList.toggle('open');
                 };
 
                 // Status Dropdown
                 const select = document.createElement('select');
                 select.className = `status-select val-${getClassForStatus(task.status)}`;
-                
+
                 const options = ['未着手', '進行中', '完了'];
                 options.forEach(opt => {
                     const option = document.createElement('option');
@@ -307,21 +369,21 @@
                     if (task.status === opt) option.selected = true;
                     select.appendChild(option);
                 });
-                
+
                 select.onchange = (e) => {
                     const newStatus = e.target.value;
                     // Update visuals
                     select.className = `status-select val-${getClassForStatus(newStatus)}`;
                     if (newStatus === '完了') title.style.color = '#8892b0';
                     else title.style.color = '#e6f1ff';
-                    
+
                     updateStatus(task.id, newStatus);
                 };
 
                 taskMain.appendChild(taskInfo);
                 taskMain.appendChild(select);
                 li.appendChild(taskMain);
-                
+
                 // Description Box
                 if (task.description) {
                     const descBox = document.createElement('div');
@@ -332,10 +394,10 @@
 
                 taskList.appendChild(li);
             });
-            
+
             updateProgressBar(completedCount, data.tasks.length);
         }
-        
+
         function getClassForStatus(status) {
             if (status === '完了') return 'done';
             if (status === '進行中') return 'doing';
@@ -365,7 +427,7 @@
                     },
                     body: JSON.stringify({ task_id: taskId, status: newStatus })
                 });
-                
+
                 if (response.ok) {
                     showSyncStatus('Saved to Cloud', 'saved');
                 } else {
@@ -375,12 +437,12 @@
                 console.error('Error updating task:', error);
                 showSyncStatus('Connection Error', 'error');
             }
-            
+
             setTimeout(() => {
                 document.getElementById('syncStatus').innerHTML = '';
             }, 3000);
         }
-        
+
         function showSyncStatus(text, type) {
             const el = document.getElementById('syncStatus');
             el.innerHTML = `<span class="status-badge status-${type}">${text}</span>`;

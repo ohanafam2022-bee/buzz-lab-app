@@ -21,10 +21,11 @@ def inspect():
     try:
         # Read columns A to J (Indices 0 to 9)
         # Expected: B=Title, D=Status?, F=Check?, ?=Description
-        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=f'{target_sheet}!A6:J25').execute()
+        # Read columns A to F, Rows 1 to 10 to see top section
+        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=f'{target_sheet}!A1:F10').execute()
         values = result.get('values', [])
         for i, row in enumerate(values):
-            print(f"Row {i+6}: {row}")
+            print(f"Row {i+1}: {row}")
     except Exception as e:
         print(f"Error reading {target_sheet}: {e}")
 

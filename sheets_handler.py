@@ -97,3 +97,42 @@ def update_task_status(student_id, task_id, status):
     except Exception as e:
         print(f"Error updating task: {e}")
         return False
+
+def get_user_info(student_id):
+    service = get_service()
+    if not service:
+        return {}
+
+    try:
+        # Read header section (Rows 1-5)
+        # Goal=A2, Bottleneck=C2, WeeklyFocus=A4, CurrentWeek=D4, Mentor=E4
+        target_sheet = '行動管理'
+        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=f'{target_sheet}!A1:F5').execute()
+        rows = result.get('values', [])
+        
+        info = {
+            "monthly_goal": "",
+            "bottleneck": "",
+            "weekly_focus": "",
+            "current_week": "",
+            "mentor": ""
+        }
+
+        if len(rows) > 1:
+            # Row 2 (Index 1)
+            row2 = rows[1]
+            if len(row2) > 0: info["monthly_goal"] = row2[0]
+            if len(row2) > 2: info["bottleneck"] = row2[2]
+            
+        if len(rows) > 3:
+            # Row 4 (Index 3)
+            row4 = rows[3]
+            if len(row4) > 0: info["weekly_focus"] = row4[0]
+            if len(row4) > 3: info["current_week"] = row4[3]
+            if len(row4) > 4: info["mentor"] = row4[4]
+            
+        return info
+
+    except Exception as e:
+        print(f"Error fetching user info: {e}")
+        return {}
