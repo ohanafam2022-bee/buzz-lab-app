@@ -117,5 +117,71 @@ def submit_question():
     else:
         return jsonify({"status": "error", "message": "Failed to submit"}), 500
 
+# --- Admin Routes ---
+
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == ADMIN_PASSWORD:
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return render_template('admin_login.html', error="パスワードが間違っています。")
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('admin_login'))
+
+@app.route('/admin')
+def admin_dashboard():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    # Fetch Data
+    data = sheets_handler.get_admin_dashboard_data()
+    return render_template('admin_dashboard.html', data=data)
+
+@app.route('/api/admin/create_student', methods=['POST'])
+def create_student():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.json
+    name = data.get('name')
+    student_id = data.get('student_id')
+    
+    if not name or not student_id:
+        return jsonify({'error': 'Missing name or student_id'}), 400
+        
+    success = sheets_handler.create_new_student(name, student_id)
+    
+    if success:
+        return jsonify({'status': 'success', 'message': 'Student created'}), 200
+    else:
+        return jsonify({'error': 'Failed to create student'}), 500
+
+@app.route('/api/admin/delete_student', methods=['POST'])
+def delete_student():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.json
+    student_id = data.get('student_id')
+    
+    if not student_id:
+        return jsonify({'error': 'Missing student_id'}), 400
+        
+    success = sheets_handler.delete_student(student_id)
+    
+    if success:
+        return jsonify({'status': 'success', 'message': 'Student deleted'}), 200
+    else:
+        return jsonify({'error': 'Failed to delete student'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=8081, host='0.0.0.0')
