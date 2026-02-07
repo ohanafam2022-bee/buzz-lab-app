@@ -52,6 +52,7 @@ def get_student_config(student_id):
             if len(row) >= 2 and row[0] == student_id:
                 config = {
                     'spreadsheet_id': row[1],
+                    'name': row[2] if len(row) > 2 else 'Unknown',
                     # Default to '行動管理' if Column D is missing or empty
                     'sheet_name': row[3] if len(row) > 3 and row[3].strip() else '行動管理'
                 }

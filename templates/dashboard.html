@@ -37,13 +37,54 @@
             margin: 0 auto;
         }
 
-        header {
+        /* Header */
+        .header {
+            background-color: var(--card-bg);
+            /* Match card theme? Or white? User wants premium. */
+            padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 3rem;
-            padding-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
             border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header-logo {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--text-color);
+        }
+
+        .header-logo span {
+            color: var(--light-blue);
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--light-blue);
+        }
+
+        .logout-btn {
+            color: #8892b0;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--glass-border);
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: rgba(255, 50, 50, 0.1);
+            color: #ff6b6b;
+            border-color: #ff6b6b;
         }
 
         h1 {
@@ -286,9 +327,14 @@
 
 <body>
     <div class="dashboard-container">
-        <header>
-            <h1>Buzz Lab Dashboard</h1>
-            <div class="student-info" id="studentName">Loading...</div>
+        <header class="header">
+            <div class="header-logo">
+                Buzz<span>Lab.</span>
+            </div>
+            <div class="header-user">
+                <span class="user-name">こんにちは、{{ student_name }}さん</span>
+                <a href="/logout" class="logout-btn">ログアウト</a>
+            </div>
         </header>
 
         <main class="progress-section">
@@ -354,7 +400,7 @@
         }
 
         function renderDashboard(data) {
-            document.getElementById('studentName').textContent = data.name;
+            // document.getElementById('studentName').textContent = data.name; // Handled by server-side template
 
             // Render Goal Section
             const info = data.user_info || {};

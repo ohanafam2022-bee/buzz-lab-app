@@ -1,9 +1,10 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 import os
+import sheets_handler
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
-
-# Mock Database (In-memory for now, will replace with Google Sheets later)
+# Secure secret key (in production, use env var)
+app.secret_key = os.environ.get('SECRET_KEY', 'default_dev_secret_key')
 PROGRESS_DB = {
     "student_id_001": {
         "name": "Buzz Student",
@@ -21,16 +22,52 @@ import sheets_handler
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Redirect root to dashboard (which will redirect to login if needed)
+    return redirect(url_for('dashboard'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        student_id = request.form.get('student_id')
+        
+        # Verify if student exists
+        config = sheets_handler.get_student_config(student_id)
+        if config:
+            # Login Success
+            session['student_id'] = student_id
+            session['student_name'] = config.get('name', 'Unknown')
+            return redirect(url_for('dashboard'))
+        else:
+            # Login Failed
+            return render_template('login.html', error="IDが見つかりません。正しい生徒IDを入力してください。")
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 def dashboard():
-    student_id = request.args.get('student_id', 'student_id_001') # Default to 001 for now
-    return render_template('dashboard.html', student_id=student_id)
+    # Auth Check
+    if 'student_id' not in session:
+        return redirect(url_for('login'))
+        
+    student_id = session['student_id']
+    student_name = session.get('student_name', 'Student')
+    
+    # Pass student_id and student_name to template
+    return render_template('dashboard.html', student_id=student_id, student_name=student_name)
 
 @app.route('/api/progress', methods=['GET'])
 def get_progress():
-    student_id = request.args.get('student_id', 'student_id_001')
+    # API Protection
+    # We rely on session.
+    student_id = session.get('student_id')
+    
+    if not student_id:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
     
     # Get Tasks
     tasks = sheets_handler.get_tasks(student_id)
@@ -39,17 +76,18 @@ def get_progress():
     user_info = sheets_handler.get_user_info(student_id)
     
     return jsonify({
-        "name": user_info.get("mentor", "Buzz Student"), # Mentor name as student name or separate?
-        # Actually user_info might have name if we add it to Master, but for now user_info comes from sheet
+        "name": user_info.get("mentor", "Buzz Student"), 
         "tasks": tasks,
         "user_info": user_info
     })
 
 @app.route('/api/progress', methods=['POST'])
 def update_progress():
+    if 'student_id' not in session:
+         return jsonify({"status": "error", "message": "Unauthorized"}), 401
+         
     data = request.json
-    # student_id should be passed in body or query. Let's expect body.
-    student_id = data.get('student_id', 'student_id_001')
+    student_id = session['student_id']
     task_id = data.get('task_id')
     status = data.get('status')
     
@@ -62,8 +100,11 @@ def update_progress():
 
 @app.route('/api/question', methods=['POST'])
 def submit_question():
+    if 'student_id' not in session:
+         return jsonify({"status": "error", "message": "Unauthorized"}), 401
+         
     data = request.json
-    student_id = data.get('student_id', 'student_id_001')
+    student_id = session['student_id']
     question = data.get('question')
     
     if not question:
