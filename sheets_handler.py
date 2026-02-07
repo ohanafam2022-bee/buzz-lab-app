@@ -27,15 +27,16 @@ def get_service():
     service = build('sheets', 'v4', credentials=creds)
     return service
 
-# Cache for Spreadsheet IDs to avoid frequent lookups
-SPREADSHEET_ID_CACHE = {}
+# Cache for Student Configs to avoid frequent lookups
+STUDENT_CONFIG_CACHE = {}
 
-def get_spreadsheet_id(student_id):
+def get_student_config(student_id):
     """
-    Retrieves the Spreadsheet ID for a given student_id from the 'Master' sheet.
+    Retrieves the Spreadsheet ID and Sheet Name for a given student_id from the 'Master' sheet.
+    Returns a dict: {'spreadsheet_id': str, 'sheet_name': str}
     """
-    if student_id in SPREADSHEET_ID_CACHE:
-        return SPREADSHEET_ID_CACHE[student_id]
+    if student_id in STUDENT_CONFIG_CACHE:
+        return STUDENT_CONFIG_CACHE[student_id]
 
     service = get_service()
     if not service: 
@@ -43,22 +44,25 @@ def get_spreadsheet_id(student_id):
 
     try:
         # Read 'Master' sheet
-        # A: Student ID, B: Spreadsheet ID, C: Name
-        # Reading sufficient rows to cover students
-        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range='Master!A2:C').execute()
+        # A: Student ID, B: Spreadsheet ID, C: Name, D: Sheet Name (Optional)
+        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range='Master!A2:D').execute()
         rows = result.get('values', [])
         
         for row in rows:
             if len(row) >= 2 and row[0] == student_id:
-                target_id = row[1]
-                SPREADSHEET_ID_CACHE[student_id] = target_id
-                return target_id
+                config = {
+                    'spreadsheet_id': row[1],
+                    # Default to '行動管理' if Column D is missing or empty
+                    'sheet_name': row[3] if len(row) > 3 and row[3].strip() else '行動管理'
+                }
+                STUDENT_CONFIG_CACHE[student_id] = config
+                return config
         
         print(f"Student ID {student_id} not found in Master sheet.")
         return None
 
     except Exception as e:
-        print(f"Error fetching spreadsheet ID for {student_id}: {e}")
+        print(f"Error fetching student config for {student_id}: {e}")
         return None
 
 def get_tasks(student_id):
@@ -66,15 +70,22 @@ def get_tasks(student_id):
     if not service:
         return []
 
-    target_spreadsheet_id = get_spreadsheet_id(student_id)
-    if not target_spreadsheet_id:
-        print(f"No spreadsheet found for {student_id}")
+    config = get_student_config(student_id)
+    if not config:
+        print(f"No config found for {student_id}")
         return []
+
+    target_spreadsheet_id = config['spreadsheet_id']
+    target_sheet_name = config['sheet_name']
 
     try:
         sheet = service.spreadsheets()
-        target_sheet = '行動管理'
-        result = sheet.values().get(spreadsheetId=target_spreadsheet_id, range=f'{target_sheet}!A6:E').execute()
+        # Use dynamic sheet name
+        # Note: If sheet name contains spaces/special chars, API handles it usually, 
+        # but quoting 'Sheet Name'!A1 is safer if we control the string. 
+        # However, purely relying on the string from Master sheet is most flexible.
+        range_name = f"'{target_sheet_name}'!A6:E" 
+        result = sheet.values().get(spreadsheetId=target_spreadsheet_id, range=range_name).execute()
         rows = result.get('values', [])
         
         tasks = []
@@ -109,13 +120,16 @@ def update_task_status(student_id, task_id, status):
     if not service:
         return False
 
-    target_spreadsheet_id = get_spreadsheet_id(student_id)
-    if not target_spreadsheet_id:
+    config = get_student_config(student_id)
+    if not config:
         return False
+
+    target_spreadsheet_id = config['spreadsheet_id']
+    target_sheet_name = config['sheet_name']
 
     try:
         row_index = int(task_id)
-        range_name = f'行動管理!D{row_index}'
+        range_name = f"'{target_sheet_name}'!D{row_index}"
         body = {'values': [[status]]}
         service.spreadsheets().values().update(
             spreadsheetId=target_spreadsheet_id, 
@@ -133,13 +147,15 @@ def get_user_info(student_id):
     if not service:
         return {}
 
-    target_spreadsheet_id = get_spreadsheet_id(student_id)
-    if not target_spreadsheet_id:
+    config = get_student_config(student_id)
+    if not config:
         return {}
 
+    target_spreadsheet_id = config['spreadsheet_id']
+    target_sheet_name = config['sheet_name']
+
     try:
-        target_sheet = '行動管理'
-        result = service.spreadsheets().values().get(spreadsheetId=target_spreadsheet_id, range=f'{target_sheet}!A1:F5').execute()
+        result = service.spreadsheets().values().get(spreadsheetId=target_spreadsheet_id, range=f"'{target_sheet_name}'!A1:F5").execute()
         rows = result.get('values', [])
         
         info = {
