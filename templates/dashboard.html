@@ -337,13 +337,15 @@
     </div>
 
     <script>
+        const STUDENT_ID = "{{ student_id }}";
+
         document.addEventListener('DOMContentLoaded', () => {
             fetchProgress();
         });
 
         async function fetchProgress() {
             try {
-                const response = await fetch('/api/progress');
+                const response = await fetch(`/api/progress?student_id=${STUDENT_ID}`);
                 const data = await response.json();
                 renderDashboard(data);
             } catch (error) {
@@ -498,7 +500,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ task_id: taskId, status: newStatus })
+                    body: JSON.stringify({ student_id: STUDENT_ID, task_id: taskId, status: newStatus })
                 });
 
                 if (response.ok) {
@@ -537,7 +539,7 @@
                 const response = await fetch('/api/question', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: question })
+                    body: JSON.stringify({ student_id: STUDENT_ID, question: question })
                 });
 
                 if (response.ok) {

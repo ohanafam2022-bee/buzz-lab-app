@@ -25,20 +25,22 @@ def index():
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    student_id = request.args.get('student_id', 'student_id_001') # Default to 001 for now
+    return render_template('dashboard.html', student_id=student_id)
 
 @app.route('/api/progress', methods=['GET'])
 def get_progress():
-    user_id = "student_id_001"
+    student_id = request.args.get('student_id', 'student_id_001')
     
     # Get Tasks
-    tasks = sheets_handler.get_tasks(user_id)
+    tasks = sheets_handler.get_tasks(student_id)
     
     # Get User Info (Goals, etc.)
-    user_info = sheets_handler.get_user_info(user_id)
+    user_info = sheets_handler.get_user_info(student_id)
     
     return jsonify({
-        "name": user_info.get("mentor", "Buzz Student"), # Use mentor name as student name placeholder for now? Or just "Buzz Student"
+        "name": user_info.get("mentor", "Buzz Student"), # Mentor name as student name or separate?
+        # Actually user_info might have name if we add it to Master, but for now user_info comes from sheet
         "tasks": tasks,
         "user_info": user_info
     })
@@ -46,11 +48,12 @@ def get_progress():
 @app.route('/api/progress', methods=['POST'])
 def update_progress():
     data = request.json
-    user_id = "student_id_001" 
+    # student_id should be passed in body or query. Let's expect body.
+    student_id = data.get('student_id', 'student_id_001')
     task_id = data.get('task_id')
     status = data.get('status')
     
-    success = sheets_handler.update_task_status(user_id, task_id, status)
+    success = sheets_handler.update_task_status(student_id, task_id, status)
     
     if success:
         return jsonify({"status": "success", "message": "Progress updated"}), 200
@@ -60,13 +63,13 @@ def update_progress():
 @app.route('/api/question', methods=['POST'])
 def submit_question():
     data = request.json
-    user_id = "student_id_001"
+    student_id = data.get('student_id', 'student_id_001')
     question = data.get('question')
     
     if not question:
         return jsonify({"status": "error", "message": "Question is empty"}), 400
         
-    success = sheets_handler.submit_question(user_id, question)
+    success = sheets_handler.submit_question(student_id, question)
     
     if success:
         return jsonify({"status": "success", "message": "Question submitted"}), 200
