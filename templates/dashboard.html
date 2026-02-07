@@ -235,6 +235,52 @@
             border-bottom: 1px solid var(--light-blue);
             padding-bottom: 5px;
         }
+
+        .question-section {
+            margin-top: 3rem;
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .question-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .question-textarea {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            color: var(--text-color);
+            padding: 1rem;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 1rem;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 1rem;
+            min-height: 380px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            align-self: flex-start;
+            transition: background 0.3s;
+        }
+
+        .submit-btn:hover {
+            background-color: #0044aa;
+        }
     </style>
 </head>
 
@@ -258,6 +304,33 @@
             <ul class="task-list" id="taskList">
                 <!-- Tasks will be injected here -->
             </ul>
+
+            <div class="question-section">
+                <h2>質問・連絡フォーム</h2>
+                <div class="question-form">
+                    <textarea id="questionInput" class="question-textarea" placeholder="質問や連絡事項があればこちらに入力してください...">【相談の件名】
+（何についての相談か一目でわかるように書いてください）
+
+【現在の目的・ゴール】
+（この施策を通じて、最終的にどのような状態を目指していますか？）
+
+【現在の状況と実施したこと】
+（数値や実際に試してみたアクションを具体的に共有してください）
+
+【自分で調べたこと・競合の分析】
+（調べた結果や競合の事例など）
+
+【自分なりの仮説】
+（「自分では〇〇が原因で…」という考察）
+
+【具体的な質問事項】
+・
+・
+・</textarea>
+                    <button class="submit-btn" onclick="submitQuestion()">送信する</button>
+                    <div id="questionStatus"></div>
+                </div>
+            </div>
         </main>
 
         <a href="/" class="back-link">← トップページに戻る</a>
@@ -446,6 +519,38 @@
         function showSyncStatus(text, type) {
             const el = document.getElementById('syncStatus');
             el.innerHTML = `<span class="status-badge status-${type}">${text}</span>`;
+        }
+
+        async function submitQuestion() {
+            const input = document.getElementById('questionInput');
+            const statusDiv = document.getElementById('questionStatus');
+            const question = input.value.trim();
+
+            if (!question) {
+                alert('質問内容を入力してください');
+                return;
+            }
+
+            statusDiv.innerHTML = '<span class="status-badge status-saving">送信中...</span>';
+
+            try {
+                const response = await fetch('/api/question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                if (response.ok) {
+                    statusDiv.innerHTML = '<span class="status-badge status-saved">送信されました！</span>';
+                    input.value = '';
+                    setTimeout(() => statusDiv.innerHTML = '', 3000);
+                } else {
+                    statusDiv.innerHTML = '<span class="status-badge status-error">送信エラー</span>';
+                }
+            } catch (error) {
+                console.error('Error submitting question:', error);
+                statusDiv.innerHTML = '<span class="status-badge status-error">接続エラー</span>';
+            }
         }
     </script>
 </body>

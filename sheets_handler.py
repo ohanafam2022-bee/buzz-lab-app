@@ -136,3 +136,32 @@ def get_user_info(student_id):
     except Exception as e:
         print(f"Error fetching user info: {e}")
         return {}
+
+def submit_question(student_id, question_text):
+    service = get_service()
+    if not service:
+        return False
+
+    try:
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Determine status (default: 未回答)
+        status = "未回答"
+        
+        # Append to '質問' sheet
+        values = [[timestamp, student_id, question_text, status, ""]]
+        body = {'values': values}
+        
+        service.spreadsheets().values().append(
+            spreadsheetId=SPREADSHEET_ID,
+            range='質問!A:E',
+            valueInputOption='USER_ENTERED',
+            insertDataOption='INSERT_ROWS',
+            body=body
+        ).execute()
+        
+        return True
+    except Exception as e:
+        print(f"Error submitting question: {e}")
+        return False

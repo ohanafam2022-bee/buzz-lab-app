@@ -57,5 +57,21 @@ def update_progress():
     else:
         return jsonify({"status": "error", "message": "Failed to update"}), 500
 
+@app.route('/api/question', methods=['POST'])
+def submit_question():
+    data = request.json
+    user_id = "student_id_001"
+    question = data.get('question')
+    
+    if not question:
+        return jsonify({"status": "error", "message": "Question is empty"}), 400
+        
+    success = sheets_handler.submit_question(user_id, question)
+    
+    if success:
+        return jsonify({"status": "success", "message": "Question submitted"}), 200
+    else:
+        return jsonify({"status": "error", "message": "Failed to submit"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=8081, host='0.0.0.0')

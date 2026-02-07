@@ -15,14 +15,11 @@ def inspect():
     creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     service = build('sheets', 'v4', credentials=creds)
 
-    # Inspect specific rows of '行動管理' to find Status and Description columns
-    target_sheet = '行動管理'
-    print(f"Inspecting '{target_sheet}' A-J...")
+    # Inspect '質問' sheet
+    target_sheet = '質問'
+    print(f"Inspecting '{target_sheet}'...")
     try:
-        # Read columns A to J (Indices 0 to 9)
-        # Expected: B=Title, D=Status?, F=Check?, ?=Description
-        # Read columns A to F, Rows 1 to 10 to see top section
-        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=f'{target_sheet}!A1:F10').execute()
+        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=f'{target_sheet}!A1:E5').execute()
         values = result.get('values', [])
         for i, row in enumerate(values):
             print(f"Row {i+1}: {row}")
