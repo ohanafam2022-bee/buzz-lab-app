@@ -183,5 +183,83 @@ def delete_student():
     else:
         return jsonify({'error': 'Failed to delete student'}), 500
 
+@app.route('/api/admin/reply_question', methods=['POST'])
+def reply_question():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.json
+    row_index = data.get('row_index')
+    reply_text = data.get('reply_text')
+    
+    if not row_index or not reply_text:
+        return jsonify({'error': 'Missing row_index or reply_text'}), 400
+        
+    success = sheets_handler.reply_to_question(row_index, reply_text)
+    
+    if success:
+        return jsonify({'status': 'success', 'message': 'Reply submitted'}), 200
+    else:
+        return jsonify({'error': 'Failed to submit reply'}), 500
+
+# --- Schedule APIs ---
+
+@app.route('/api/admin/schedules', methods=['GET'])
+def get_schedules():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    schedules = sheets_handler.get_schedules()
+    return jsonify({'status': 'success', 'schedules': schedules}), 200
+
+@app.route('/api/admin/schedules', methods=['POST'])
+def add_schedule():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.json
+    title = data.get('title')
+    start = data.get('start')
+    end = data.get('end')
+    event_type = data.get('type', 'event')
+    
+    if not title or not start:
+        return jsonify({'error': 'Missing title or start date'}), 400
+        
+    success = sheets_handler.add_schedule(title, start, end, event_type)
+    
+    if success:
+        return jsonify({'status': 'success', 'message': 'Schedule added'}), 200
+    else:
+        return jsonify({'error': 'Failed to add schedule'}), 500
+
+@app.route('/api/admin/schedules', methods=['DELETE'])
+def delete_schedule():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.json
+    event_id = data.get('id')
+    
+    if not event_id:
+        return jsonify({'error': 'Missing event ID'}), 400
+        
+    success = sheets_handler.delete_schedule(event_id)
+    
+    if success:
+        return jsonify({'status': 'success', 'message': 'Schedule deleted'}), 200
+    else:
+        return jsonify({'error': 'Failed to delete schedule'}), 500
+
+# --- Dashboard Metrics API ---
+
+@app.route('/api/admin/dashboard_metrics', methods=['GET'])
+def get_dashboard_metrics():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    metrics = sheets_handler.get_dashboard_metrics()
+    return jsonify({'status': 'success', 'data': metrics}), 200
+
 if __name__ == '__main__':
     app.run(debug=True, port=8081, host='0.0.0.0')

@@ -9,6 +9,9 @@
         href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Outfit:wght@400;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary-blue: #0052cc;
@@ -61,44 +64,96 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 2rem auto;
-            padding: 0 1rem;
+            padding: 0 1.5rem;
         }
 
         /* Overview Cards */
         .overview-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
 
         .card {
             background: var(--card-bg);
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
             display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .card.row {
+            flex-direction: row;
             align-items: center;
+            justify-content: flex-start;
         }
 
         .card-icon {
             font-size: 2rem;
-            margin-right: 1rem;
+            margin-right: 1.5rem;
             color: var(--primary-blue);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 82, 204, 0.1);
+            border-radius: 50%;
         }
 
         .card-info h3 {
-            margin: 0;
-            font-size: 0.9rem;
+            margin: 0 0 0.25rem 0;
+            font-size: 0.85rem;
             color: #777;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .card-info .value {
             font-size: 1.8rem;
             font-weight: 700;
             color: var(--dark-blue);
+            line-height: 1.2;
+        }
+
+        /* Charts-specific */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* Calendar Styles */
+        .calendar-section {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        #calendar {
+            max-width: 100%;
+            margin: 0 auto;
+            min-height: 600px;
+        }
+
+        .fc-event {
+            cursor: pointer;
         }
 
         /* Sections */
@@ -106,18 +161,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .btn-primary {
             background-color: var(--primary-blue);
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 600;
             text-decoration: none;
+            transition: background 0.2s;
         }
 
         .btn-primary:hover {
@@ -127,10 +183,11 @@
         /* Tables */
         .table-container {
             background: var(--card-bg);
-            border-radius: 8px;
+            border-radius: 12px;
             overflow-x: auto;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             margin-bottom: 3rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         table {
@@ -141,15 +198,16 @@
 
         th,
         td {
-            padding: 1rem;
+            padding: 1rem 1.5rem;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         th {
-            background-color: #f8f9fa;
+            background-color: #fafbfc;
             font-weight: 600;
-            color: #555;
+            color: #444;
+            font-size: 0.9rem;
         }
 
         tr:hover {
@@ -158,10 +216,10 @@
 
         .status-pill {
             display: inline-block;
-            padding: 0.2rem 0.6rem;
+            padding: 0.25rem 0.75rem;
             border-radius: 20px;
             font-size: 0.8rem;
-            font-weight: bold;
+            font-weight: 600;
         }
 
         .status-unanswered {
@@ -195,48 +253,68 @@
             background: rgba(0, 0, 0, 0.5);
             justify-content: center;
             align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
         }
 
         .modal-content {
             background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            width: 400px;
+            padding: 2.5rem;
+            border-radius: 12px;
+            width: 450px;
             position: relative;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         .close-btn {
             position: absolute;
             top: 1rem;
-            right: 1rem;
+            right: 1.5rem;
             font-size: 1.5rem;
             cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
         }
 
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group textarea {
             width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 0.8rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-blue);
         }
 
         .delete-btn {
-            background-color: rgba(255, 99, 71, 0.2);
+            background-color: transparent;
             color: #ff6347;
             border: 1px solid #ff6347;
-            padding: 5px 10px;
-            border-radius: 5px;
+            padding: 6px 12px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 500;
             transition: all 0.2s;
         }
 
@@ -258,21 +336,46 @@
 
         <!-- Overview -->
         <div class="overview-grid">
-            <div class="card">
+            <div class="card row">
                 <div class="card-icon"><i class="fas fa-users"></i></div>
                 <div class="card-info">
                     <h3>総生徒数</h3>
                     <div class="value">{{ data.total_students }}</div>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-icon" style="color: var(--danger-color);"><i class="fas fa-question-circle"></i></div>
+            <div class="card row">
+                <div class="card-icon" style="color: var(--danger-color); background: rgba(231, 76, 60, 0.1);"><i
+                        class="fas fa-question-circle"></i></div>
                 <div class="card-info">
                     <h3>未回答の質問</h3>
                     <div class="value">{{ data.total_questions }}</div>
                 </div>
             </div>
         </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <div class="card">
+                <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--dark-blue);">売上推移 (実績 vs 目標)</h3>
+                <div class="chart-container">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--dark-blue);">生徒進捗分布</h3>
+                <div class="chart-container">
+                    <canvas id="goalsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Section -->
+        <section class="calendar-section">
+            <div class="section-header">
+                <h2>スケジュール</h2>
+            </div>
+            <div id="calendar"></div>
+        </section>
 
         <!-- Questions Section -->
         {% if data.unanswered_questions %}
@@ -288,6 +391,7 @@
                             <th>生徒ID</th>
                             <th>質問内容</th>
                             <th>ステータス</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -297,6 +401,12 @@
                             <td>{{ q.student_id }}</td>
                             <td>{{ q.question }}</td>
                             <td><span class="status-pill status-unanswered">未回答</span></td>
+                            <td>
+                                <button class="btn-primary" style="font-size: 0.8rem;"
+                                    onclick="openReplyModal('{{ q.row_index }}', '{{ q.question }}')">
+                                    回答する
+                                </button>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -337,31 +447,9 @@
                             </td>
                             <td>{{ student.monthly_goal }}</td>
                             <td>
-                                <a href="https://docs.google.com/spreadsheets/d/{{ student.spreadsheet_id }}/edit#gid={{ student.sheet_name | replace('行動管理', '') | replace('①', '1') | replace('②', '2') }}"
-                                    target="_blank">
-                                    {{ student.sheet_name }} <i class="fas fa-external-link-alt"></i>
-                                </a>
-                                <!-- Note: Direct link usually works by finding the sheet name, but GID is safer if known.
-                                     For now, trusting the link provided in Master or constructing it.
-                                     Actually, student.sheet_name is just the name.
-                                     The Master sheet has the full HYPERLINK formula.
-                                     Let's trust the 'sheet_name' field from get_all_students is actually just the name,
-                                     and we might need the URL.
-                                     Wait, get_all_students returns 'sheet_name' as the *text* of the 4th column.
-                                     If the 4th column is a HYPERLINK formula, standard API fetch gets the *display value* (the name).
-                                     So we can't easily get the GID without parsing formula or extra calls.
-                                     However, the user wants a link.
-                                     Let's use a search link or just text for now?
-                                     Actually, better to standardise the link.
-                                     The previous code had: <a href="...gid=...">{{ sheet_name }}</a>
-                                     But where did the GID come from?
-                                     Previous code: <a href="https://docs.google.com/spreadsheets/d/{{ student.spreadsheet_id }}/#gid=0" ...>
-                                     It just linked to the spreadsheet (GID 0).
-                                     I'll improve this to link to the spreadsheet generically if GID unknown.
-                                -->
                                 <a href="https://docs.google.com/spreadsheets/d/{{ student.spreadsheet_id }}"
-                                    target="_blank" style="margin-left: 10px; color: var(--light-blue);">
-                                    ↗ シートを開く
+                                    target="_blank" class="link-text">
+                                    {{ student.sheet_name }} <i class="fas fa-external-link-alt"></i>
                                 </a>
                             </td>
                             <td>
@@ -399,7 +487,209 @@
         </div>
     </div>
 
+    <!-- Reply Modal -->
+    <div id="replyModal" class="modal">
+        <div class="modal-content" style="width: 500px;">
+            <span class="close-btn" onclick="closeReplyModal()">&times;</span>
+            <h2>質問への回答</h2>
+            <p id="replyQuestionText"
+                style="margin-bottom: 1rem; font-weight: bold; color: #555; background: #f9f9f9; padding: 10px; border-radius: 5px;">
+            </p>
+            <form id="replyForm" onsubmit="submitReply(event)">
+                <input type="hidden" id="replyRowIndex">
+                <div class="form-group">
+                    <label>回答内容</label>
+                    <textarea id="replyText" required placeholder="回答を入力してください..."
+                        style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; resize: vertical;"></textarea>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%">回答を送信</button>
+                <div id="replyLoadingMsg" style="display:none; text-align:center; margin-top:1rem; color:#666;">
+                    送信中...
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Event Modal -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEventModal()">&times;</span>
+            <h2>予定を追加</h2>
+            <form id="eventForm" onsubmit="createEvent(event)">
+                <div class="form-group">
+                    <label>タイトル</label>
+                    <input type="text" id="eventTitle" required placeholder="例: 面談">
+                </div>
+                <div class="form-group">
+                    <label>日付</label>
+                    <input type="date" id="eventDate" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%">追加する</button>
+            </form>
+        </div>
+    </div>
+
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ja',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: '/api/admin/schedules',
+                dateClick: function (info) {
+                    openEventModal(info.dateStr);
+                },
+                eventClick: function (info) {
+                    if (confirm("この予定を削除しますか？: " + info.event.title)) {
+                        deleteEvent(info.event.id);
+                    }
+                }
+            });
+            calendar.render();
+            window.calendar = calendar; // Expose for refresh
+
+            // Initialize Charts
+            initCharts();
+        });
+
+        async function initCharts() {
+            try {
+                const response = await fetch('/api/admin/dashboard_metrics');
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const data = result.data;
+
+                    // Sales Chart
+                    const salesCtx = document.getElementById('salesChart').getContext('2d');
+                    new Chart(salesCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.sales.map(item => item.month),
+                            datasets: [{
+                                label: '売上 (Revenue)',
+                                data: data.sales.map(item => item.revenue),
+                                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }, {
+                                label: '目標 (Target)',
+                                data: data.sales.map(item => item.target),
+                                type: 'line',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 2,
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false, // Important for chart container
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+
+                    // Goals Chart (Progress)
+                    const goalsCtx = document.getElementById('goalsChart').getContext('2d');
+                    new Chart(goalsCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.progress.labels,
+                            datasets: [{
+                                data: data.progress.counts,
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.5)',
+                                    'rgba(54, 162, 235, 0.5)',
+                                    'rgba(255, 206, 86, 0.5)',
+                                    'rgba(75, 192, 192, 0.5)',
+                                    'rgba(153, 102, 255, 0.5)',
+                                    'rgba(255, 159, 64, 0.5)'
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(255, 206, 86, 1)',
+                                    'rgba(75, 192, 192, 1)',
+                                    'rgba(153, 102, 255, 1)',
+                                    'rgba(255, 159, 64, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching dashboard metrics:", error);
+            }
+        }
+
+        function openEventModal(dateStr) {
+            document.getElementById('eventDate').value = dateStr;
+            document.getElementById('eventModal').style.display = 'flex';
+        }
+
+        function closeEventModal() {
+            document.getElementById('eventModal').style.display = 'none';
+            document.getElementById('eventTitle').value = '';
+        }
+
+        async function createEvent(event) {
+            event.preventDefault();
+            const title = document.getElementById('eventTitle').value;
+            const date = document.getElementById('eventDate').value;
+
+            if (!title || !date) return;
+
+            try {
+                const response = await fetch('/api/admin/schedules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title, start: date, type: 'event' })
+                });
+
+                if (response.ok) {
+                    closeEventModal();
+                    window.calendar.refetchEvents();
+                } else {
+                    alert('作成に失敗しました');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('エラーが発生しました');
+            }
+        }
+
+        async function deleteEvent(eventId) {
+            try {
+                const response = await fetch('/api/admin/schedules', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: eventId })
+                });
+
+                if (response.ok) {
+                    window.calendar.refetchEvents();
+                } else {
+                    alert('削除に失敗しました');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('エラーが発生しました');
+            }
+        }
+
         function openModal() {
             document.getElementById('addStudentModal').style.display = 'flex';
         }
@@ -407,7 +697,20 @@
             document.getElementById('addStudentModal').style.display = 'none';
         }
 
-        async function createStudent() {
+        // --- Reply Modal Functions ---
+        function openReplyModal(rowIndex, questionText) {
+            document.getElementById('replyRowIndex').value = rowIndex;
+            document.getElementById('replyQuestionText').textContent = "Q: " + questionText;
+            document.getElementById('replyModal').style.display = 'flex';
+        }
+
+        function closeReplyModal() {
+            document.getElementById('replyModal').style.display = 'none';
+            document.getElementById('replyText').value = ''; // Clear text
+        }
+
+        async function createStudent(event) {
+            event.preventDefault(); // Prevent form submission
             const name = document.getElementById('studentName').value; // Changed from newStudentName
             const studentId = document.getElementById('studentId').value; // Changed from newStudentId
             const statusDiv = document.getElementById('loadingMsg'); // Changed from createStatus, using existing loadingMsg
@@ -424,7 +727,6 @@
             statusDiv.style.display = 'block';
 
             statusDiv.textContent = '作成中... (これには数秒かかります)';
-            // statusDiv.className = 'status-badge status-saving'; // No direct equivalent, just text change
 
             try {
                 const response = await fetch('/api/admin/create_student', {
@@ -437,18 +739,15 @@
 
                 if (response.ok) {
                     statusDiv.textContent = '作成成功！リロードします...';
-                    // statusDiv.className = 'status-badge status-saved';
                     setTimeout(() => location.reload(), 2000);
                 } else {
-                    statusDiv.textContent = 'エラー: ' + result.message; // Changed from result.error
-                    // statusDiv.className = 'status-badge status-error';
+                    statusDiv.textContent = 'エラー: ' + result.message;
                     btn.disabled = false;
                     btn.style.opacity = '1';
                 }
             } catch (error) {
                 console.error('Error:', error);
                 statusDiv.textContent = '接続エラーが発生しました';
-                // statusDiv.className = 'status-badge status-error';
                 btn.disabled = false;
                 btn.style.opacity = '1';
             }
@@ -480,11 +779,60 @@
             }
         }
 
+        async function submitReply(event) {
+            event.preventDefault();
+            const rowIndex = document.getElementById('replyRowIndex').value;
+            const replyText = document.getElementById('replyText').value;
+            const statusDiv = document.getElementById('replyLoadingMsg');
+            const btn = document.querySelector('#replyForm button[type="submit"]');
+
+            if (!replyText) {
+                alert('回答を入力してください');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            statusDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/admin/reply_question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ row_index: rowIndex, reply_text: replyText })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    statusDiv.textContent = '送信しました！';
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    statusDiv.textContent = 'エラー: ' + result.error;
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.textContent = '接続エラー';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+
         // Close modal if clicked outside
         window.onclick = function (event) {
-            const modal = document.getElementById('addStudentModal');
-            if (event.target == modal) {
+            const addModal = document.getElementById('addStudentModal');
+            const replyModal = document.getElementById('replyModal');
+            const eventModal = document.getElementById('eventModal');
+            if (event.target == addModal) {
                 closeModal();
+            }
+            if (event.target == replyModal) {
+                closeReplyModal();
+            }
+            if (event.target == eventModal) {
+                closeEventModal();
             }
         }
     </script>

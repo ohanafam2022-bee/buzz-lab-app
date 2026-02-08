@@ -210,6 +210,249 @@ def submit_question(student_id, question_text):
         print(f"Error submitting question: {e}")
         return False
 
+def reply_to_question(row_index, reply_text):
+    """
+    Updates the question row with the reply and changes status to '回答済み'.
+    """
+    service = get_service()
+    if not service: return False
+
+    try:
+        # Columns correspond to: A:Timestamp, B:StudentId, C:Question, D:Status, E:Reply
+        # We need to update D (Status) and E (Reply).
+        # row_index is 1-based.
+        range_name = f"質問!D{row_index}:E{row_index}"
+        values = [["回答済み", reply_text]]
+        body = {'values': values}
+        
+        service.spreadsheets().values().update(
+            spreadsheetId=SPREADSHEET_ID,
+            range=range_name,
+            valueInputOption='USER_ENTERED',
+            body=body
+        ).execute()
+        return True
+    except Exception as e:
+        print(f"Error replying to question: {e}")
+        return False
+
+    except Exception as e:
+        print(f"Error replying to question: {e}")
+        return False
+
+# --- Schedule Functions ---
+
+def get_schedules():
+    """
+    Fetches all schedules from the 'Schedules' sheet.
+    """
+    service = get_service()
+    if not service: return []
+
+    try:
+        # Check if 'Schedules' sheet exists, if not create it
+        spreadsheet = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        sheet_exists = any(s['properties']['title'] == 'Schedules' for s in spreadsheet.get('sheets', []))
+        
+        if not sheet_exists:
+            # Create 'Schedules' sheet
+            request_body = {
+                'requests': [{
+                    'addSheet': {
+                        'properties': {'title': 'Schedules'}
+                    }
+                }]
+            }
+            service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=request_body).execute()
+            # Add Header
+            header = [['ID', 'Title', 'Start', 'End', 'Type']]
+            service.spreadsheets().values().update(
+                spreadsheetId=SPREADSHEET_ID,
+                range='Schedules!A1:E1',
+                valueInputOption='USER_ENTERED',
+                body={'values': header}
+            ).execute()
+            return []
+
+        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range='Schedules!A2:E').execute()
+        rows = result.get('values', [])
+        
+        schedules = []
+        for i, row in enumerate(rows):
+            if len(row) >= 3:
+                schedules.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'start': row[2],
+                    'end': row[3] if len(row) > 3 else "",
+                    'type': row[4] if len(row) > 4 else "event",
+                    'row_index': i + 2 # For deletion
+                })
+        return schedules
+    except Exception as e:
+        print(f"Error fetching schedules: {e}")
+        return []
+
+def add_schedule(title, start, end, event_type="event"):
+    service = get_service()
+    if not service: return False
+
+    try:
+        import uuid
+        event_id = str(uuid.uuid4())
+        
+        values = [[event_id, title, start, end, event_type]]
+        body = {'values': values}
+        
+        service.spreadsheets().values().append(
+            spreadsheetId=SPREADSHEET_ID,
+            range='Schedules!A:E',
+            valueInputOption='USER_ENTERED',
+            insertDataOption='INSERT_ROWS',
+            body=body
+        ).execute()
+        return True
+    except Exception as e:
+        print(f"Error adding schedule: {e}")
+        return False
+
+def delete_schedule(event_id):
+    service = get_service()
+    if not service: return False
+
+    try:
+        # Find row index
+        schedules = get_schedules()
+        row_index = -1
+        for s in schedules:
+            if s['id'] == event_id:
+                row_index = s['row_index']
+                break
+        
+        if row_index == -1: return False
+        
+        # Delete row
+        spreadsheet = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        sheet_id = 0
+        for s in spreadsheet.get('sheets', []):
+            if s['properties']['title'] == 'Schedules':
+                sheet_id = s['properties']['sheetId']
+                break
+                
+        request_body = {
+            'requests': [{
+                'deleteDimension': {
+                    'range': {
+                        'sheetId': sheet_id,
+                        'dimension': 'ROWS',
+                        'startIndex': row_index - 1, # 0-indexed
+                        'endIndex': row_index
+                    }
+                }
+            }]
+        }
+        service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=request_body).execute()
+        return True
+    except Exception as e:
+        print(f"Error deleting schedule: {e}")
+        return False
+
+    except Exception as e:
+        print(f"Error deleting schedule: {e}")
+        return False
+
+# --- Dashboard Metrics ---
+
+def get_dashboard_metrics():
+    """
+    Fetches Sales data and aggregates Student Goals data.
+    """
+    service = get_service()
+    if not service: return {}
+
+    try:
+        # 1. Sales Data
+        # Check if 'Sales' sheet exists, if not create it with dummy data
+        spreadsheet = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        sheet_exists = any(s['properties']['title'] == 'Sales' for s in spreadsheet.get('sheets', []))
+        
+        sales_data = []
+        if not sheet_exists:
+            # Create 'Sales' sheet
+            request_body = {
+                'requests': [{
+                    'addSheet': {
+                        'properties': {'title': 'Sales'}
+                    }
+                }]
+            }
+            service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=request_body).execute()
+            # Add Header and Dummy Data
+            header = [['Month', 'Revenue', 'Target']]
+            dummy_data = [
+                ['2025-01', '500000', '600000'],
+                ['2025-02', '550000', '600000'],
+                ['2025-03', '600000', '650000'],
+                ['2025-04', '580000', '650000'],
+                ['2025-05', '620000', '700000']
+            ]
+            service.spreadsheets().values().update(
+                spreadsheetId=SPREADSHEET_ID,
+                range='Sales!A1:C6',
+                valueInputOption='USER_ENTERED',
+                body={'values': header + dummy_data}
+            ).execute()
+            
+            # Fetch the dummy data we just added
+            sales_data = [{'month': r[0], 'revenue': int(r[1]), 'target': int(r[2])} for r in dummy_data]
+            
+        else:
+            result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range='Sales!A2:C').execute()
+            rows = result.get('values', [])
+            for row in rows:
+                if len(row) >= 3:
+                     # Clean up values (remove currency symbols, commas)
+                    rev = row[1].replace(',', '').replace('¥', '')
+                    tgt = row[2].replace(',', '').replace('¥', '')
+                    try:
+                        sales_data.append({
+                            'month': row[0],
+                            'revenue': int(rev) if rev.isdigit() else 0,
+                            'target': int(tgt) if tgt.isdigit() else 0
+                        })
+                    except ValueError:
+                        continue
+
+        # 2. Student Progress Distribution (Goals)
+        students = get_all_students()
+        progress_counts = {}
+        
+        for s in students:
+            week = s.get('current_week', 'N/A')
+            if week == 'N/A' or week == '-':
+                key = 'Unstarted'
+            else:
+                key = week
+            
+            progress_counts[key] = progress_counts.get(key, 0) + 1
+            
+        # Sort keys to make charts look nice (Unstarted first, then Week 1, 2...)
+        sorted_keys = sorted(progress_counts.keys(), key=lambda x: int(x.split(' ')[1]) if 'Week' in x else -1 if x == 'Unstarted' else 999)
+        
+        progress_data = {
+            'labels': sorted_keys,
+            'counts': [progress_counts[k] for k in sorted_keys]
+        }
+
+        return {
+            'sales': sales_data,
+            'progress': progress_data
+        }
+
+    except Exception as e:
+        print(f"Error getting dashboard metrics: {e}")
+        return {}
+
 # --- Admin Dashboard Functions ---
 
 def get_all_students():
