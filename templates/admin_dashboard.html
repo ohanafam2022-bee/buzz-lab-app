@@ -322,6 +322,83 @@
             background-color: #ff6347;
             color: white;
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .admin-header h1 {
+                font-size: 1.25rem;
+            }
+
+            .logout-btn {
+                font-size: 0.85rem;
+                align-self: flex-end;
+            }
+
+            .container {
+                padding: 0 1rem;
+                margin: 1.5rem auto;
+            }
+
+            .overview-grid,
+            .charts-grid {
+                grid-template-columns: 1fr;
+                /* Stack vertically */
+                gap: 1rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            /* Calendar Adjustments */
+            .calendar-section {
+                padding: 1rem;
+            }
+
+            #calendar {
+                height: auto;
+                min-height: 500px;
+            }
+
+            .fc-header-toolbar {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .fc-toolbar-chunk {
+                display: flex;
+                justify-content: center;
+                width: 100%;
+            }
+
+            /* Table Scroll Snap */
+            .table-container {
+                margin: 0 -1rem 2rem -1rem;
+                /* Full width on mobile */
+                border-radius: 0;
+                box-shadow: none;
+                border-top: 1px solid #eee;
+                border-bottom: 1px solid #eee;
+            }
+
+            table {
+                min-width: 600px;
+                /* Force scroll */
+            }
+
+            th,
+            td {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 
@@ -532,14 +609,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var calendarEl = document.getElementById('calendar');
+            var isMobile = window.innerWidth < 768;
+
             var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+                initialView: isMobile ? 'listMonth' : 'dayGridMonth', // List view on mobile
                 locale: 'ja',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    right: isMobile ? 'listMonth,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
+                height: 'auto', // Auto height
                 events: '/api/admin/schedules',
                 dateClick: function (info) {
                     openEventModal(info.dateStr);
@@ -547,6 +627,13 @@
                 eventClick: function (info) {
                     if (confirm("この予定を削除しますか？: " + info.event.title)) {
                         deleteEvent(info.event.id);
+                    }
+                },
+                windowResize: function (view) {
+                    if (window.innerWidth < 768) {
+                        calendar.changeView('listMonth');
+                    } else {
+                        calendar.changeView('dayGridMonth');
                     }
                 }
             });
